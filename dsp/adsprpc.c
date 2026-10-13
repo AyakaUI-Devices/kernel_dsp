@@ -81,6 +81,7 @@
 #define VMID_ADSP_Q6    6
 #define DEBUGFS_SIZE 3072
 #define PID_SIZE 10
+#define FASTRPC_DEFAULT_MAX_SIZE 0x78000000
 
 #define AUDIO_PDR_ADSP_DTSI_PROPERTY_NAME        "qcom,fastrpc-adsp-audio-pdr"
 #define AUDIO_PDR_SERVICE_LOCATION_CLIENT_NAME   "audio_pdr_adsprpc"
@@ -3146,6 +3147,8 @@ static void fastrpc_init(struct fastrpc_apps *me)
 	me->channel = &gcinfo[0];
 	mutex_init(&me->mut_uid);
 	me->max_sess_per_proc = DEFAULT_MAX_SESS_PER_PROC;
+	/* Non-SMMU sessions never run fastrpc_cb_probe(). */
+	me->max_size_limit = FASTRPC_DEFAULT_MAX_SIZE;
 	for (i = 0; i < NUM_CHANNELS; i++) {
 		init_completion(&me->channel[i].work);
 		init_completion(&me->channel[i].workport);
@@ -8099,7 +8102,7 @@ static int fastrpc_cb_probe(struct device *dev)
 
 	of_property_read_u32_array(dev->of_node, "qcom,iommu-dma-addr-pool",
 			dma_addr_pool, 2);
-	me->max_size_limit = (dma_addr_pool[1] == 0 ? 0x78000000 :
+	me->max_size_limit = (dma_addr_pool[1] == 0 ? FASTRPC_DEFAULT_MAX_SIZE :
 			dma_addr_pool[1]);
 
 	if (of_get_property(dev->of_node, "pd-type", NULL) != NULL) {
